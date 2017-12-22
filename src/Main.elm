@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Html exposing (Html, Attribute, program, text, div, input, ul, li)
+import Html exposing (Html, Attribute, program, text, div, input, ul, li, label)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
@@ -8,13 +8,19 @@ import Html.Events exposing (..)
 ---- MODEL ----
 
 
+type Match
+    = Prefix
+    | Partial
+    | Backward
+
+
 type alias Model =
-    { word : String, words : List String }
+    { word : String, words : List String, match : Match }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { words = words, word = "" }, Cmd.none )
+    ( { words = words, word = "", match = Partial }, Cmd.none )
 
 
 
@@ -23,6 +29,7 @@ init =
 
 type Msg
     = SearchText String
+    | SelectMatch Match
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -32,24 +39,48 @@ update msg ({ words, word } as model) =
         SearchText word ->
             ( { model | word = word }, Cmd.none )
 
+        SelectMatch match ->
+            ( { model | match = match }, Cmd.none )
+
 
 
 ---- VIEW ----
 
 
 view : Model -> Html Msg
-view { words, word } =
+view { words, word, match } =
     let
         filteredWords =
             -- List.filter (\w -> String.contains word w)
-            List.filter (String.contains word) words
+            filterWords match word words
                 |> List.map (\w -> li [] [ text w ])
     in
         div []
             [ input [ placeholder "Search...", value word, onInput SearchText ] []
+            , div []
+                [ input [ type_ "radio", name "search-type", onClick <| SelectMatch Prefix ] []
+                , label [] [ text "前方一致" ]
+                , input [ type_ "radio", name "search-type", onClick <| SelectMatch Partial ] []
+                , label [] [ text "部分一致" ]
+                , input [ type_ "radio", name "search-type", onClick <| SelectMatch Backward ] []
+                , label [] [ text "後方一致" ]
+                ]
             , ul []
                 filteredWords
             ]
+
+
+filterWords : Match -> String -> List String -> List String
+filterWords match word words =
+    case match of
+        Prefix ->
+            List.filter (String.startsWith word) words
+
+        Partial ->
+            List.filter (String.contains word) words
+
+        Backward ->
+            List.filter (String.endsWith word) words
 
 
 
