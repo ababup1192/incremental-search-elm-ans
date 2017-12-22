@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html, Attribute, program, text, div, input, ul, li, label)
 import Html.Attributes exposing (..)
+import List.Extra as ListExtra
 import Html.Events exposing (..)
 
 
@@ -54,20 +55,28 @@ view { words, word, match } =
             -- List.filter (\w -> String.contains word w)
             filterWords match word words
                 |> List.map (\w -> li [] [ text w ])
+
+        groupsWords =
+            ListExtra.getAt 0 <| ListExtra.greedyGroupsOf 20 filteredWords
     in
-        div []
-            [ input [ placeholder "Search...", value word, onInput SearchText ] []
-            , div []
-                [ input [ type_ "radio", name "search-type", onClick <| SelectMatch Prefix ] []
-                , label [] [ text "前方一致" ]
-                , input [ type_ "radio", name "search-type", onClick <| SelectMatch Partial ] []
-                , label [] [ text "部分一致" ]
-                , input [ type_ "radio", name "search-type", onClick <| SelectMatch Backward ] []
-                , label [] [ text "後方一致" ]
-                ]
-            , ul []
-                filteredWords
-            ]
+        case groupsWords of
+            Just words_ ->
+                div []
+                    [ input [ placeholder "Search...", value word, onInput SearchText ] []
+                    , div []
+                        [ input [ type_ "radio", name "search-type", onClick <| SelectMatch Prefix ] []
+                        , label [] [ text "前方一致" ]
+                        , input [ type_ "radio", name "search-type", onClick <| SelectMatch Partial ] []
+                        , label [] [ text "部分一致" ]
+                        , input [ type_ "radio", name "search-type", onClick <| SelectMatch Backward ] []
+                        , label [] [ text "後方一致" ]
+                        ]
+                    , ul []
+                        words_
+                    ]
+
+            Nothing ->
+                Debug.crash "out of range"
 
 
 filterWords : Match -> String -> List String -> List String
