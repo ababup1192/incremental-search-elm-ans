@@ -104,7 +104,6 @@ view { words, word, match, page } =
                         , input [ type_ "radio", name "search-type", onClick <| SelectMatch Backward ] []
                         , label [] [ text "後方一致" ]
                         ]
-                    , div [] pageLinks
                     ]
 
 
