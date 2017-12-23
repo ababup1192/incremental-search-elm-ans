@@ -3,3 +3,7 @@ body {
   margin: 50px;
   color: #293c4b;
 }
+
+a, span {
+  margin-left: 5px;
+}

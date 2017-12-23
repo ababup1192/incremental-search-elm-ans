@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Html exposing (Html, Attribute, program, text, div, input, ul, li, label)
+import Html exposing (Html, Attribute, program, text, div, input, ul, li, label, a, span)
 import Html.Attributes exposing (..)
 import List.Extra as ListExtra
 import Html.Events exposing (..)
@@ -16,12 +16,12 @@ type Match
 
 
 type alias Model =
-    { word : String, words : List String, match : Match }
+    { word : String, words : List String, match : Match, page : Int }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { words = words, word = "", match = Partial }, Cmd.none )
+    ( { words = words, word = "", match = Partial, page = 1 }, Cmd.none )
 
 
 
@@ -31,6 +31,7 @@ init =
 type Msg
     = SearchText String
     | SelectMatch Match
+    | SelectPage Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -38,10 +39,13 @@ update msg ({ words, word } as model) =
     -- implements your code
     case msg of
         SearchText word ->
-            ( { model | word = word }, Cmd.none )
+            ( { model | word = word, page = 1 }, Cmd.none )
 
         SelectMatch match ->
-            ( { model | match = match }, Cmd.none )
+            ( { model | match = match, page = 1 }, Cmd.none )
+
+        SelectPage page ->
+            ( { model | page = page }, Cmd.none )
 
 
 
@@ -49,17 +53,30 @@ update msg ({ words, word } as model) =
 
 
 view : Model -> Html Msg
-view { words, word, match } =
+view { words, word, match, page } =
     let
         filteredWords =
             -- List.filter (\w -> String.contains word w)
             filterWords match word words
                 |> List.map (\w -> li [] [ text w ])
 
-        groupsWords =
-            ListExtra.getAt 0 <| ListExtra.greedyGroupsOf 20 filteredWords
+        groupWords =
+            ListExtra.greedyGroupsOf 20 filteredWords
+
+        pageLinks =
+            List.range 1 (List.length groupWords)
+                |> List.map
+                    (\page_ ->
+                        if page == page_ then
+                            span [] [ text <| toString page_ ]
+                        else
+                            a [ href "#", onClick <| SelectPage page_ ] [ text <| toString page_ ]
+                    )
+
+        wordsOfPage =
+            ListExtra.getAt (page - 1) groupWords
     in
-        case groupsWords of
+        case wordsOfPage of
             Just words_ ->
                 div []
                     [ input [ placeholder "Search...", value word, onInput SearchText ] []
@@ -73,10 +90,22 @@ view { words, word, match } =
                         ]
                     , ul []
                         words_
+                    , div [] pageLinks
                     ]
 
             Nothing ->
-                Debug.crash "out of range"
+                div []
+                    [ input [ placeholder "Search...", value word, onInput SearchText ] []
+                    , div []
+                        [ input [ type_ "radio", name "search-type", onClick <| SelectMatch Prefix ] []
+                        , label [] [ text "前方一致" ]
+                        , input [ type_ "radio", name "search-type", onClick <| SelectMatch Partial ] []
+                        , label [] [ text "部分一致" ]
+                        , input [ type_ "radio", name "search-type", onClick <| SelectMatch Backward ] []
+                        , label [] [ text "後方一致" ]
+                        ]
+                    , div [] pageLinks
+                    ]
 
 
 filterWords : Match -> String -> List String -> List String
